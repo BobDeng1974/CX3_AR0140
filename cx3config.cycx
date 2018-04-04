@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="ASCII"?>
+<cx3configurationmodel:CX3Configuration xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:cx3configurationmodel="http://cx3configurationmodel/1.0" useSensorConfiguration="true">
+  <sensorConfiguration thsPrepare="90.0" thsZero="70.0" sensor="AR0140">
+    <videoFormatConfigurations videoFormat="YUY2" optimumVideoFrameResolution="1" outputDataFormat="YUY2" pixelPacking="16-Bit">
+      <frameResolutionConfigurations frameResolutionName="720P" noOfDataLanes="2" csiFrequency="288.0" hActive="1280" hBlanking="50" vActive="720" vBlanking="5" frameRate="30.0" stillImageSupport="true" videoStreamingSupport="true" mipiReceiverConfiguration="//@mipiReceiverConfigurations.0"/>
+    </videoFormatConfigurations>
+  </sensorConfiguration>
+  <mipiReceiverConfigurations name="AR0140_YUY2_720P" mipiStructure="CY_U3P_CSI_DF_YUV422_8_2">
+    <mipiCsi2Input csiClock="288" dataLane="2" thsPrepare="90.0" thsZero="70" hActive="1280" hBlanking="50" vActive="720" vBlanking="5" dataFormat="YUY2" frameRate="30.0"/>
+    <mipiInterfaceConfiguration refClk="19.2" preDividerValue="3" pllOutClockRange="250M-500M" multipleValueOfUnitClock="90" pixelClockDivider="4" piiClockDivider="4" mClkDiv="2" fifoDelay="50" mClkLow="2" mClkHigh="2" dataFormat="YUY2"/>
+  </mipiReceiverConfigurations>
+  <videoStreamInputDescriptor totalSize="82" stillImageSupport="true">
+    <uvcformatdescriptors vsDescriptorLength="27" formatDescriptorIndex="1" guid="0X59,0X55,0X59,0X32,&#xA;0X00,0X00,0X10,0X00,&#xA;0X80,0X00,0X00,0XAA,&#xA;0X00,0X38,0X9B,0X71,&#xA;" subType="4" videoFormat="YUY2" optimumVideoFrameResolution="1" noOfBitsPerPixel="16" gpifBusWidth="16">
+      <uvcframeresolutiondescriptor subtype="5" frameIndex="1" stillImageSupport="true" width="1280" height="720" minBitRate="442368000" maxBitRate="442368000" maxVideoFrameSize="1843200" defaultFrameInterval="333333" frameInterval="333333" frameResolutionName="720P" mipiRxConfiguration="//@mipiReceiverConfigurations.0"/>
+      <stillImageDescriptors noFrameResolutions="1" descriptorLength="11" stillFrameResolutions="//@sensorConfiguration/@videoFormatConfigurations.0/@frameResolutionConfigurations.0"/>
+    </uvcformatdescriptors>
+  </videoStreamInputDescriptor>
+</cx3configurationmodel:CX3Configuration>
