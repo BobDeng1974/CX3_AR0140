@@ -26,7 +26,7 @@
 #define MAX96705_CHIP_ID_REG			(0x1E)
 
 /* Globals */
-
+#define 	MAX_SENSOR_NUM  			4
 static CyBool_t glIsValidSensor = CyFalse;
 
 CyU3PReturnStatus_t MAX9286_SensorRead(uint8_t regAddr, uint8_t count, uint8_t *buf)
@@ -106,7 +106,7 @@ CyU3PReturnStatus_t MAX96705_SensorRead(uint8_t regAddr, uint8_t count, uint8_t 
     return status;
 }
 
-CyU3PReturnStatus_t MAX96705_SensorWrite(uint8_t regAddr, uint8_t count, uint8_t buf)
+CyU3PReturnStatus_t MAX96705_SensorWrite(uint8_t regAddr, uint8_t count, uint8_t buf, uint8_t index)
 {
 	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 	CyU3PI2cPreamble_t preamble;
@@ -114,7 +114,7 @@ CyU3PReturnStatus_t MAX96705_SensorWrite(uint8_t regAddr, uint8_t count, uint8_t
 
 	for(cnt=0; cnt<3 ; cnt++)
 	{
-		preamble.buffer[0] = MAX96705_I2C_WRITE_ADDRESS; /* Slave address: write operation */
+		preamble.buffer[0] = ((MAX96705_I2C_ADDRESS + index) << 1); /* Slave address: write operation */
 		preamble.buffer[1] = regAddr;
 		preamble.length = 2;
 		preamble.ctrlMask = 0x0000;
@@ -193,16 +193,208 @@ CyU3PReturnStatus_t MAX96705_VerifyChipId()
 CyU3PReturnStatus_t AR0140_ImageSensor_Set_Base()
 {
 	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
-
+	uint16_t g_sensor_num;
+	uint8_t g_sensor_is_there;
+	uint8_t reg;
+	uint16_t i;
 	uint8_t readBuffer = 0;
+	uint8_t *cam_mask = "1000";
+
+	status = MAX9286_SensorRead(0x0E, 1, &readBuffer);
+		if (status != CY_U3P_SUCCESS)
+					return status;
+
 	//Disable CSI Output
 	status = MAX9286_SensorWrite(0x15, 1, 0x13);
 	if (status != CY_U3P_SUCCESS)
 			return status;
+
 	//Enable PRBS test
 	status = MAX9286_SensorWrite(0x0E, 1, 0x5F);
 	if (status != CY_U3P_SUCCESS)
 			return status;
+	 /* Thread sleep : 10 ms */
+		CyU3PThreadSleep(10);
+
+	//Enable Custom Reverse Channel & First Pulse Length
+	status = MAX9286_SensorWrite(0x3F, 1, 0x4F);
+		if (status != CY_U3P_SUCCESS)
+			return status;
+
+	CyU3PThreadSleep(2);
+
+	//Reverse Channel Amplitude to mid level and transition time
+	status = MAX9286_SensorWrite(0x3B, 1, 0x1E);
+		if (status != CY_U3P_SUCCESS)
+			return status;
+	CyU3PThreadSleep(2);
+
+	//Reverse Channel Amplitude level
+	status = MAX9286_SensorWrite(0x3B, 1, 0x19);
+		if (status != CY_U3P_SUCCESS)
+			return status;
+	CyU3PThreadSleep(2);
+
+	//Set YUV422 8 bits mode, Double Data Rate, 4 data lane
+	status = MAX9286_SensorWrite(0x12, 1, 0xF3);
+	//Manual Mode
+	status = MAX9286_SensorWrite(0x01, 1, 0x00);
+	status = MAX9286_SensorWrite(0x63, 1, 0x00);
+	status = MAX9286_SensorWrite(0x64, 1, 0x00);
+	status = MAX9286_SensorWrite(0x06, 1, 0x00);
+	status = MAX9286_SensorWrite(0x07, 1, 0x00);
+	status = MAX9286_SensorWrite(0x08, 1, 0x26);
+	status = MAX9286_SensorWrite(0x0C, 1, 0x91);
+	CyU3PThreadSleep(100);
+
+	//Detect link
+	g_sensor_num = 0;
+	g_sensor_is_there = 0;
+
+	for(i=0; i<4; i++)
+	{
+		if(cam_mask[i] == '1')
+		{
+			g_sensor_is_there |= (1UL<<i);
+			g_sensor_num +=1;
+		}
+	}
+
+	CyU3PDebugPrint(4, "\r\n max9286_mipi: snesor numer = %d.", g_sensor_num );
+	CyU3PDebugPrint(4, "\r\n g_snesor_is_there = 0x%x.", g_sensor_is_there);
+
+	//Disable PRBS test
+	status = MAX9286_SensorWrite(0x0E, 1, 0x50);
+
+	// Set link order in MIPI CSI-2 output
+	reg = 0xE4; //Defaul setting
+	if (g_sensor_num == 1) {
+	        switch (g_sensor_is_there) {
+	            case 0x8:
+	                reg = 0x27;
+	                break;
+	            case 0x4:
+	                reg = 0xC6;
+	                break;
+	            case 0x2:
+	                reg = 0xE1;
+	                break;
+	            case 0x1:
+	            default:
+	                reg = 0xE4;
+	                break;
+	        }
+	    } else if (g_sensor_num == 2) {
+	        switch (g_sensor_is_there) {
+	            case 0xC:
+	                reg = 0x4E;
+	                break;
+	            case 0xA:
+	                reg = 0x72;
+	                break;
+	            case 0x9:
+	                reg = 0x78;
+	                break;
+	            case 0x6:
+	                reg = 0xD2;
+	                break;
+	            case 0x5:
+	                reg = 0xD8;
+	                break;
+	            case 0x3:
+	            default:
+	                reg = 0xE4;
+	                break;
+	        }
+	    } else if (g_sensor_num == 3) {
+	        switch (g_sensor_is_there) {
+	            case 0xE:
+	                reg = 0x93;
+	                break;
+	            case 0xD:
+	                reg = 0x9C;
+	                break;
+	            case 0xB:
+	                reg = 0xB4;
+	                break;
+	            case 0x7:
+	            default:
+	                reg = 0xE4;
+	                break;
+	        }
+	    }
+
+	status = MAX9286_SensorWrite(0x0B, 1, reg);
+
+	//Enable all masked links
+	reg = 0xE0 | g_sensor_is_there;
+	status = MAX9286_SensorWrite(0x00, 1, reg);
+
+	//Set up new address for each selected max96705
+	reg = 0;
+	for(i=1; i<= MAX_SENSOR_NUM; i++)
+	{
+		if( ((0x1 << (i-1)) & g_sensor_is_there) == 0)
+			continue;
+
+		//Enable Link control channel
+		reg |= (0x11 << (i-1));
+		status = MAX9286_SensorWrite(0x0A, 1, reg);
+		CyU3PThreadSleep(2);
+
+		status = MAX96705_SensorWrite(0x00, 1, (MAX96705_I2C_ADDRESS + i) <<1, 0 ); //(0x40 + 0) << 1   ==  0x80
+		CyU3PThreadSleep(2);
+		//Set MAX9271: Double Mode, PCLK latched on Rising Edge, HS/VS encoding
+		status = MAX96705_SensorWrite(0x07, 1, 0x84, i );
+		CyU3PThreadSleep(2);
+
+		status = MAX96705_SensorWrite(0x01, 1, MAX9286_I2C_ADDRESS <<1, i );
+
+		status = MAX96705_SensorWrite(0x0B, 1, (MAX96705_I2C_ADDRESS + 5) <<1, i );
+
+		status = MAX96705_SensorWrite(0x0C, 1, (MAX96705_I2C_ADDRESS + i) <<1, i );
+		CyU3PThreadSleep(1);
+	}
+
+	status = MAX9286_SensorWrite(0x0A, 1, reg );
+	status = MAX9286_SensorWrite(0x0A, 1, reg );
+
+	CyU3PThreadSleep(3);
+
+	//Disable Local Auto I2C ACK
+	status = MAX9286_SensorWrite(0x34, 1, 0x36 );
+
+	//Enable Local Auto I2C ACK
+	status = MAX9286_SensorWrite(0x34, 1, 0xB6 );
+
+	/*add this to make up for the missing 2 lines*/
+	for(i=1; i<=MAX_SENSOR_NUM; i++)
+	{
+		if(cam_mask[i-1]=='1')
+		{
+			status = MAX96705_SensorWrite(0x47, 1, 0x25, i);
+			status = MAX96705_SensorWrite(0x48, 1, 0x00, i);
+			status = MAX96705_SensorWrite(0x49, 1, 0x00, i);
+			status = MAX96705_SensorWrite(0x43, 1, 0x25, i);
+		}
+
+	}
+	/*add this to make up for the missing lines*/
+
+	//MAX96705: Enable Serial Links and Disable Configuration Link
+
+	for(i=1; i<=MAX_SENSOR_NUM; i++)
+	{
+		if(cam_mask[i-1]=='1')
+		{
+			status = MAX96705_SensorWrite(0x04, 1, 0x83, i);
+		}
+	}
+	CyU3PThreadSleep(100);
+
+	if (status != CY_U3P_SUCCESS)
+		return status;
+
 	//Read the register written
 	status = MAX9286_SensorRead(0x15, 1, &readBuffer);
 	if (status != CY_U3P_SUCCESS)
