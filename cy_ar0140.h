@@ -26,10 +26,10 @@ CyU3PReturnStatus_t CyCx3_ImageSensor_Init(void);
 
 
 /* Put Image Sensor to Sleep/Low Power Mode */
-//CyU3PReturnStatus_t CyCx3_ImageSensor_Sleep(void);
+CyU3PReturnStatus_t CyCx3_ImageSensor_Sleep(void);
 
 /* Wake Image Sensor from Sleep/Low Power Mode to Active Mode */
-//CyU3PReturnStatus_t CyCx3_ImageSensor_Wakeup(void);
+CyU3PReturnStatus_t CyCx3_ImageSensor_Wakeup(void);
 
 
 

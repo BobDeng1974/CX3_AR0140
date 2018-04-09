@@ -461,20 +461,16 @@ CyU3PReturnStatus_t AR0140_ImageSensor_Set_Base()
 	}
 	CyU3PThreadSleep(100);
 
+	//start cam csi output
+	status = MAX9286_SensorWrite(0x15, 1, 0x9B);
 	if (status != CY_U3P_SUCCESS)
 		return status;
+	CyU3PThreadSleep(30);
 
-	//Read the register written
-	status = MAX9286_SensorRead(0x15, 1, &readBuffer);
-	if (status != CY_U3P_SUCCESS)
-			return status;
-
-	status = MAX9286_SensorRead(0x0E, 1, &readBuffer);
-	if (status != CY_U3P_SUCCESS)
-				return status;
-
+	//Read the register written for MAX9286 and MAX96705
 	Dump_Register_9286();
 	Dump_Register_96705(1);
+
 
 	return status;
 }
@@ -499,5 +495,34 @@ CyU3PReturnStatus_t CyCx3_ImageSensor_Init(void)
 	if (status != CY_U3P_SUCCESS)
 				return status;
 
+	return status;
+}
+
+CyU3PReturnStatus_t CyCx3_ImageSensor_Wakeup(void)
+{
+	CyU3PDebugPrint(4,"\r\n enable ar0140 Camera csi-output");
+	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+
+	status = MAX9286_SensorWrite(0x15, 1, 0x9B);
+	if (status != CY_U3P_SUCCESS)
+		return status;
+
+	//Read the register written for MAX9286 and MAX96705
+	Dump_Register_9286();
+	Dump_Register_96705(1);
+	CyU3PThreadSleep(30);
+	return status;
+}
+
+CyU3PReturnStatus_t CyCx3_ImageSensor_Sleep(void)
+{
+	CyU3PDebugPrint(4,"\r\n enable ar0140 Camera csi-output");
+	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+
+	status = MAX9286_SensorWrite(0x15, 1, 0x13);
+	if (status != CY_U3P_SUCCESS)
+		return status;
+
+	CyU3PThreadSleep(30);
 	return status;
 }
