@@ -80,7 +80,7 @@ CyU3PReturnStatus_t MAX9286_SensorWrite(uint8_t regAddr, uint8_t count, uint8_t 
 	    return status;
 }
 
-CyU3PReturnStatus_t MAX96705_SensorRead(uint8_t regAddr, uint8_t count, uint8_t *buf)
+CyU3PReturnStatus_t MAX96705_SensorRead(uint8_t regAddr, uint8_t count, uint8_t *buf, uint8_t index)
 {
     CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
     CyU3PI2cPreamble_t preamble;
@@ -88,9 +88,9 @@ CyU3PReturnStatus_t MAX96705_SensorRead(uint8_t regAddr, uint8_t count, uint8_t 
 
     for(cnt=0; cnt<3 ; cnt++)
     {
-    	preamble.buffer[0] = MAX96705_I2C_WRITE_ADDRESS; /* Slave address: write operation */
+    	preamble.buffer[0] = ((MAX96705_I2C_ADDRESS + index) << 1); /* Slave address: write operation */
     	preamble.buffer[1] = regAddr;
-    	preamble.buffer[2] = MAX96705_I2C_READ_ADDRESS; /* Slave address: Read operation */
+    	preamble.buffer[2] = (((MAX96705_I2C_ADDRESS + index)<<1) | 1); /* Slave address: Read operation */
     	preamble.length = 3;
     	preamble.ctrlMask = 0x0002;
         status = CyU3PI2cReceiveBytes (&preamble, buf, count,0);
@@ -171,7 +171,7 @@ CyU3PReturnStatus_t MAX96705_VerifyChipId()
     CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 
     readBuffer = 0;
-    status = MAX96705_SensorRead(MAX96705_CHIP_ID_REG, 1, &readBuffer);
+    status = MAX96705_SensorRead(MAX96705_CHIP_ID_REG, 1, &readBuffer, 0);
     if (status != CY_U3P_SUCCESS)
         return status;
 
@@ -190,6 +190,76 @@ CyU3PReturnStatus_t MAX96705_VerifyChipId()
     return status;
 }
 
+CyU3PReturnStatus_t Dump_Register_9286()
+{
+	uint8_t data = 0;
+	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+	uint8_t reg_addr[] = {
+			0x15, //virtual channel
+			0x0E,
+			0X3F,
+			0X3B,
+			0X12,
+			0X01,
+			0x63,
+            0x64,
+            0x06,
+            0x07,
+            0x08,
+            0x0C,
+            0x0B,
+            0x00,
+            0x0A,
+            0x34,
+            0x36
+	};
+	uint8_t i;
+	uint8_t readBuffer = 0 ;
+
+	for(i=0; i < sizeof(reg_addr); i++)
+	{
+
+		status = MAX9286_SensorRead(reg_addr[i], 1, &readBuffer);
+		if (status != CY_U3P_SUCCESS)
+		{
+			CyU3PDebugPrint(4,"\r\n MAX9286_SensorRead failed while reading address 0x%x", reg_addr[i]);
+			return status;
+		}
+	}
+}
+
+CyU3PReturnStatus_t Dump_Register_96705(uint8_t index)
+{
+	uint8_t data = 0;
+	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+	uint8_t reg_addr[] = {
+			0x00,
+			0x07,
+			0x01,
+			0x0B, //control channel
+			0x0C, //virtual channel
+			0x47, //pixel info
+			0x48,
+			0X49,
+			0x43,
+			0x04,
+			0x13,
+	};
+	uint8_t i;
+	uint8_t readBuffer = 0 ;
+
+	for(i=0; i < sizeof(reg_addr); i++)
+	{
+
+		status = MAX96705_SensorRead(reg_addr[i], 1, &readBuffer, index);
+		if (status != CY_U3P_SUCCESS)
+		{
+			CyU3PDebugPrint(4,"\r\n MAX96705_SensorRead failed while reading address 0x%x", reg_addr[i]);
+			return status;
+		}
+	}
+}
+
 CyU3PReturnStatus_t AR0140_ImageSensor_Set_Base()
 {
 	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
@@ -200,7 +270,7 @@ CyU3PReturnStatus_t AR0140_ImageSensor_Set_Base()
 	uint8_t readBuffer = 0;
 	uint8_t *cam_mask = "1000";
 
-	status = MAX9286_SensorRead(0x0E, 1, &readBuffer);
+	status = MAX9286_SensorRead(0x49, 1, &readBuffer);
 		if (status != CY_U3P_SUCCESS)
 					return status;
 
@@ -377,7 +447,6 @@ CyU3PReturnStatus_t AR0140_ImageSensor_Set_Base()
 			status = MAX96705_SensorWrite(0x49, 1, 0x00, i);
 			status = MAX96705_SensorWrite(0x43, 1, 0x25, i);
 		}
-
 	}
 	/*add this to make up for the missing lines*/
 
@@ -404,8 +473,13 @@ CyU3PReturnStatus_t AR0140_ImageSensor_Set_Base()
 	if (status != CY_U3P_SUCCESS)
 				return status;
 
+	Dump_Register_9286();
+	Dump_Register_96705(1);
+
 	return status;
 }
+
+
 
 CyU3PReturnStatus_t CyCx3_ImageSensor_Init(void)
 {
