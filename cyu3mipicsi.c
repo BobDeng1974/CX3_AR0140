@@ -24,20 +24,36 @@
 #include "cyu3mipicsi.h"
 
 
-/* AR0140_YUY2_720P :  */
-CyU3PMipicsiCfg_t AR0140_YUY2_720P =  
+/* AR0140_UYVY_720P :  */
+CyU3PMipicsiCfg_t AR0140_UYVY_720P =  
 {
+#if 0
     CY_U3P_CSI_DF_YUV422_8_2,  /* CyU3PMipicsiDataFormat_t dataFormat */
     2,                          /* uint8_t numDataLanes */
     2,				/* uint8_t pllPrd */
     89,			/* uint16_t pllFbd */
-    CY_U3P_CSI_PLL_FRS_250_500M, /* CyU3PMipicsiPllClkFrs_t pllFrs */  
-    CY_U3P_CSI_PLL_CLK_DIV_4,	/* CyU3PMipicsiPllClkDiv_t csiRxClkDiv */
-    CY_U3P_CSI_PLL_CLK_DIV_4,	/* CyU3PMipicsiPllClkDiv_t parClkDiv */
+    CY_U3P_CSI_PLL_FRS_500_1000M, /* CyU3PMipicsiPllClkFrs_t pllFrs */  
+    CY_U3P_CSI_PLL_CLK_DIV_8,	/* CyU3PMipicsiPllClkDiv_t csiRxClkDiv */
+    CY_U3P_CSI_PLL_CLK_DIV_8,	/* CyU3PMipicsiPllClkDiv_t parClkDiv */
     0,		                /* uint16_t mClkCtl */
     CY_U3P_CSI_PLL_CLK_DIV_2,	/* CyU3PMipicsiPllClkDiv_t mClkRefDiv */
     1280,		        /* uint16_t hResolution */
-    50	                        /* uint16_t fifoDelay */
+    300	                        /* uint16_t fifoDelay */
+#endif
+
+    CY_U3P_CSI_DF_YUV422_8_2,  /* CyU3PMipicsiDataFormat_t dataFormat */
+    2,                          /* uint8_t numDataLanes */
+    1,				/* uint8_t pllPrd */
+    82,			/* uint16_t pllFbd */
+    CY_U3P_CSI_PLL_FRS_500_1000M, /* CyU3PMipicsiPllClkFrs_t pllFrs */
+    CY_U3P_CSI_PLL_CLK_DIV_8,	/* CyU3PMipicsiPllClkDiv_t csiRxClkDiv */
+    CY_U3P_CSI_PLL_CLK_DIV_8,	/* CyU3PMipicsiPllClkDiv_t parClkDiv */
+    0,		                /* uint16_t mClkCtl */
+    CY_U3P_CSI_PLL_CLK_DIV_2,	/* CyU3PMipicsiPllClkDiv_t mClkRefDiv */
+    1280,		        /* uint16_t hResolution */
+    340	                        /* uint16_t fifoDelay */
+
+
 };
 
 /* [ ] */

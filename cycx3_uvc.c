@@ -60,6 +60,10 @@ static CyU3PEvent glMipiErrorEvent;            /* Application Event Group */
 static volatile uint32_t glDMATxCount = 0;      /* Counter used to count the Dma Transfers */
 static volatile uint32_t glDmaDone = 0;
 static volatile uint8_t  glActiveSocket = 0;
+static volatile uint32_t my_status = 0;
+static volatile uint32_t enter_dma_callback = 0;
+static volatile uint32_t enter_dma_callback_count = 0;
+
 static CyBool_t glHitFV = CyFalse;             /* Flag used for state of FV signal. */
 static CyBool_t glMipiActive = CyFalse;        /* Flag set to true whin Mipi interface is active. Used for Suspend/Resume. */
 static CyBool_t glIsClearFeature = CyFalse;    /* Flag to signal when AppStop is called from the ClearFeature request. Needed
@@ -110,6 +114,19 @@ uint8_t glStillProbeCtrl[CX3_UVC_MAX_STILL_PROBE_SETTING] =
     0x00, 0xC6, 0x99, 0x00,          /* Max video frame size in bytes (Highest resolution - 5MP frame size) */
     0x00, 0x80, 0x00, 0x00           /* No. of bytes device can rx in single payload = 16KB */
 };
+#endif
+
+#ifdef PRINT_FRAME_INFO
+int32_t TxCount = 0;
+int32_t RxCount = 0;
+int32_t TxCountflag = 0;
+int32_t RxCountflag = 0;
+int32_t Printflag = 0;
+int32_t FrameCount = 0;
+int32_t PartialBufSize = 0;
+uint32_t time0 = 0, time1 = 0;
+uint16_t fpsflag = 0;
+uint16_t gettimeflag = 0;
 #endif
 
 static void
@@ -225,7 +242,7 @@ CyCx3UvcAppStart (
 
     /* Wake Mipi interface and Image Sensor */
     CyU3PMipicsiWakeup();
-    //CyCx3_ImageSensor_Wakeup();
+    CyCx3_ImageSensor_Wakeup();
     glMipiActive = CyTrue;
 
     //CyCx3_ImageSensor_Trigger_Autofocus();
@@ -344,6 +361,9 @@ CyCx3UvcAppDmaCallback (
     CyU3PDmaBuffer_t dmaBuffer;
     CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 
+    enter_dma_callback = 1;
+    enter_dma_callback_count++;
+
     if (type == CY_U3P_DMA_CB_PROD_EVENT)
     {
         /* This is a produce event notification to the CPU. This notification is
@@ -372,6 +392,14 @@ CyCx3UvcAppDmaCallback (
             {
                 CyCx3UvcAppAddHeader ((dmaBuffer.buffer - CX3_UVC_PROD_HEADER), CX3_UVC_HEADER_EOF);
                 glHitFV = CyTrue;
+
+				#ifdef PRINT_FRAME_INFO
+                FrameCount++;
+                PartialBufSize = dmaBuffer.count;
+                RxCountflag = RxCount;
+                TxCountflag = TxCount;
+                Printflag = 1;
+				#endif
             }
             else
             {
@@ -387,8 +415,12 @@ CyCx3UvcAppDmaCallback (
             }
             else
             {
+				#ifdef PRINT_FRAME_INFO
+            		TxCount++;
+				#endif
                 glDMATxCount++;
                 glDmaDone++;
+                my_status++;
             }
 
             glActiveSocket ^= 1; /* Toggle the Active Socket */
@@ -397,12 +429,19 @@ CyCx3UvcAppDmaCallback (
     }
     else if(type == CY_U3P_DMA_CB_CONS_EVENT)
     {
+#ifdef PRINT_FRAME_INFO
+    	RxCount++;
+#endif
         glDmaDone--;
         glIsStreamingStarted = CyTrue;
 
         /* Check if Frame is completely transferred */
         if ((glHitFV == CyTrue) && (glDmaDone == 0))
         {
+#ifdef PRINT_FRAME_INFO
+            TxCount = 0;
+            RxCount = 0;
+#endif
             glHitFV = CyFalse;
             glDMATxCount=0;
 
@@ -512,7 +551,7 @@ CyCx3UvcAppLPMRqtCB (
         CyU3PUsbLinkPowerMode link_mode         /*USB 3.0 linkmode requested by Host */
         )
 {
-    return CyTrue;
+    return CyFalse;
 }
 
 #ifdef STILL_CAPTURE_ENABLE
@@ -536,16 +575,16 @@ CyCx3UvcAppImageSensorSetStillResolution(
 			 
 				case 0x01:
 				/*Write 720PSettings*/
-					status = CyU3PMipicsiSetIntfParams (&AR0140_YUY2_720P, CyFalse);
+					status = CyU3PMipicsiSetIntfParams (&AR0140_UYVY_720P, CyFalse);
 					if (status != CY_U3P_SUCCESS)
 					{
 						CyU3PDebugPrint (4, "\n\rUSBStpCB:SetIntfParams SS2 Err = 0x%x", status);
 					}
-
 					//CyCx3_ImageSensor_Set_720P();
+					CyU3PDebugPrint (4, "\n\CyCx3UvcAppImageSensorSetStillResolution:  my_status = %d", my_status);
 					break;
 				
-				
+
 			}
 			break;
 	
@@ -570,6 +609,7 @@ CyCx3UvcAppImageSensorSetVideoResolution(
         uint8_t resolution_index
         )
 {
+	static int dealytime = 0x00;
 	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 	switch (CyU3PUsbGetSpeed ())
 	{
@@ -580,13 +620,26 @@ CyCx3UvcAppImageSensorSetVideoResolution(
 					
 				case 0x01:
 					/* Write 720PSettings */
-					status = CyU3PMipicsiSetIntfParams (&AR0140_YUY2_720P, CyFalse);
+					status = CyU3PMipicsiSetIntfParams (&AR0140_UYVY_720P, CyFalse);
 					if (status != CY_U3P_SUCCESS)
 					{
 						CyU3PDebugPrint (4, "\n\rUSBStpCB:SetIntfParams SS1 Err = 0x%x", status);
 					}
 
+					status = CyU3PMipicsiSetPhyTimeDelay(1,dealytime);
+					CyU3PDebugPrint (4, "\n\SET CyU3PMipicsiSetPhyTimeDelay dealytime as %d", dealytime++);
 					//CyCx3_ImageSensor_Set_720P ();
+					CyU3PDebugPrint (4, "\n\CyCx3UvcAppImageSensorSetVideoResolution:  my_status = %d", my_status);
+
+					CyU3PDebugPrint (4, "\n\CyCx3UvcAppImageSensorSetVideoResolution:  enter_dma_callback = %d", enter_dma_callback);
+
+					if(enter_dma_callback == 1)
+					{
+						enter_dma_callback = 0;
+						CyU3PDebugPrint (4, "\n\CyCx3UvcAppImageSensorSetVideoResolution:  dma call back function is called ");
+						CyU3PDebugPrint (4, "\n\CyCx3UvcAppImageSensorSetVideoResolution:  dma call back function is called %d times", enter_dma_callback_count);
+					}
+
 					break;				
 				
 			}
@@ -635,6 +688,34 @@ CyCx3UvcAppHandleSetCurReq (
         /* Set Commit Control and Start Streaming*/
         if (wValue == CX3_UVC_VS_COMMIT_CONTROL)
         {
+        	status = CyU3PMipicsiReset(CY_U3P_CSI_HARD_RST);
+        	if (status != CY_U3P_SUCCESS)
+			{
+				CyU3PDebugPrint (4, "\n\r CyU3PMipicsiReset Err = 0x%x", status);
+				return;
+			}
+
+        	status = CyU3PMipicsiInit();
+        	if (status != CY_U3P_SUCCESS)
+			{
+				CyU3PDebugPrint (4, "\n\r CyU3PMipicsiInit Err = 0x%x", status);
+				return;
+			}
+
+        	status = CyU3PMipicsiSetIntfParams(&AR0140_UYVY_720P, CyFalse);
+        	if (status != CY_U3P_SUCCESS)
+        	{
+				CyU3PDebugPrint (4, "\n\r CyU3PMipicsiSetIntfParams Err = 0x%x", status);
+				return;
+			}
+
+        	status = CyU3PMipicsiSetSensorControl(CY_U3P_CSI_IO_XRES, CyTrue);
+        	if (status != CY_U3P_SUCCESS)
+			{
+				CyU3PDebugPrint (4, "\n\r CyU3PMipicsiSetSensorControl Err = 0x%x", status);
+				return;
+			}
+
         	CyCx3UvcAppImageSensorSetVideoResolution (glCommitCtrl[3]);
 			
             if (glIsApplnActive)
@@ -709,9 +790,9 @@ CyCx3UvcAppUSBSetupCB (
     wIndex   = ((setupdat1 & CY_U3P_USB_INDEX_MASK)   >> CY_U3P_USB_INDEX_POS);
 
 #if CX3_DEBUG_ENABLED
-    wLength  = ((setupdat1 & CY_U3P_USB_LENGTH_MASK)  >> CY_U3P_USB_LENGTH_POS);
-    CyU3PDebugPrint(4, "\n\rbRType = 0x%x, bRequest = 0x%x, wValue = 0x%x, wIndex = 0x%x, wLength= 0x%x",
-            bRType, bRequest, wValue, wIndex, wLength);
+//    wLength  = ((setupdat1 & CY_U3P_USB_LENGTH_MASK)  >> CY_U3P_USB_LENGTH_POS);
+//    CyU3PDebugPrint(4, "\n\rbRType = 0x%x, bRequest = 0x%x, wValue = 0x%x, wIndex = 0x%x, wLength= 0x%x",
+//            bRType, bRequest, wValue, wIndex, wLength);
 #endif
 
     /* ClearFeature(Endpoint_Halt) received on the Streaming Endpoint. Stop Streaming */
@@ -1114,7 +1195,6 @@ CyCx3UvcAppInit (
 
     /* Setup the Bulk endpoint used for Video Streaming */
     endPointConfig.enable  = CyTrue;
-    endPointConfig.epType  = CY_U3P_USB_EP_BULK;
     endPointConfig.isoPkts = 0;
     endPointConfig.streams = 0;
 
@@ -1240,7 +1320,15 @@ CyCx3UvcAppInit (
     CyU3PMipicsiSetSensorControl (CY_U3P_CSI_IO_XRES, CyTrue);
 
     CyCx3_ImageSensor_Init();
-    //CyCx3_ImageSensor_Sleep();
+    CyCx3_ImageSensor_Sleep();
+    //status = CyU3PMipicsiSetPhyTimeDelay(1,0x05);
+    //status = CyU3PMipicsiSetPhyTimeDelay(1,0x09);
+    status = CyU3PMipicsiSetPhyTimeDelay(1,0x05);
+    if (status != CY_U3P_SUCCESS)
+	{
+		CyU3PDebugPrint (4, "\n\rAppInit:CyU3PMipicsiSetPhyTimeDelay Err = 0x%x",status);
+		CyCx3UvcAppErrorHandler(status);
+	}
 
 #ifdef RESET_TIMER_ENABLE
     CyU3PTimerCreate (&UvcTimer, CyCx3UvcAppProgressTimer, 0x00, TIMER_PERIOD, 0, CYU3P_NO_ACTIVATE);
@@ -1307,6 +1395,11 @@ CyCx3UvcAppThread_Entry (
     uint16_t wakeReason;
     uint32_t eventFlag;
     CyU3PReturnStatus_t status;
+#ifdef PRINT_FRAME_INFO
+    uint32_t fps;
+    CyU3PMipicsiErrorCounts_t errCnts;
+#endif
+    //CyU3PMipicsiErrorCounts_t errCnts;
 
     /* Initialize the Debug Module */
     CyCx3UvcAppDebugInit();
@@ -1316,7 +1409,36 @@ CyCx3UvcAppThread_Entry (
 
     for (;;)
     {
+
+
+    	CyU3PDebugPrint(4,"\n\rProd = %d Cons = %d  Prtl_Sz = %d Frm_Cnt = %d Frm_Sz = %d B", TxCountflag, RxCountflag, PartialBufSize, FrameCount, ((TxCountflag*CX3_UVC_DATA_BUF_SIZE)+PartialBufSize));
         eventFlag = 0;
+#ifdef PRINT_FRAME_INFO
+//		if (Printflag == 1)
+//		{
+			/*For video streaming application of higher FPS refrain from using this debug print or try to reduce the print information*/
+//			CyU3PDebugPrint(4,"\n\rProd = %d Cons = %d  Prtl_Sz = %d Frm_Cnt = %d Frm_Sz = %d B", TxCountflag, RxCountflag, PartialBufSize, FrameCount, ((TxCountflag*CX3_UVC_DATA_BUF_SIZE)+PartialBufSize));
+			Printflag = 0;
+
+			if (fpsflag == 1)
+			{
+				fps = 30000/(time1 -time0); //FPS calculate using time difference for 30 frames
+				CyU3PDebugPrint(4,"\n\rTimeDiff = %d ms FPS = %d", (time1 -time0), fps);
+				fpsflag = 0;
+
+
+			}
+			/* Uncomment the code below to check for MIPI errors per frame*/
+
+#ifndef FX3_STREAMING
+			CyU3PMipicsiGetErrors( CyTrue, &errCnts);
+
+			CyU3PDebugPrint(4,"\n\r%d %d %d %d %d %d %d %d %d",errCnts.crcErrCnt,errCnts.ctlErrCnt, errCnts.eidErrCnt, errCnts.frmErrCnt, errCnts.mdlErrCnt, errCnts.recSyncErrCnt, errCnts.recrErrCnt, errCnts.unrSyncErrCnt, errCnts.unrcErrCnt );
+#endif
+
+//		}
+#endif
+
 
         status = CyU3PEventGet (&glCx3Event, CX3_USB_SUSP_EVENT_FLAG | CX3_DMA_RESET_EVENT,
                 CYU3P_EVENT_OR_CLEAR, &eventFlag, CYU3P_WAIT_FOREVER);
@@ -1324,12 +1446,16 @@ CyCx3UvcAppThread_Entry (
         {
             if (eventFlag & CX3_DMA_RESET_EVENT)
             {
+#ifdef PRINT_FRAME_INFO
+				TxCount = 0;
+				RxCount = 0;
+#endif
                 /* Frame timed out. Abort and start streaming again. */
                 if (glIsApplnActive)
                 {
                     CyCx3UvcAppStop();
                 }
-                
+
                 CyCx3UvcAppStart();
 
 #ifdef RESET_TIMER_ENABLE
@@ -1343,14 +1469,14 @@ CyCx3UvcAppThread_Entry (
             {
                 /* Place CX3 in Low Power Suspend mode, with USB bus activity as the wakeup source. */
                 CyU3PMipicsiSleep();
-                //CyCx3_ImageSensor_Sleep();
+                CyCx3_ImageSensor_Sleep();
                 
                 status = CyU3PSysEnterSuspendMode (CY_U3P_SYS_USB_BUS_ACTVTY_WAKEUP_SRC, 0, &wakeReason);
                 CyU3PDebugPrint (4, "\n\rEnterSuspendMode Status =  0x%x, Wakeup reason = 0x%x", status, wakeReason);
                 if (glMipiActive)
                 {
                     CyU3PMipicsiWakeup();
-                    //CyCx3_ImageSensor_Wakeup();
+                    CyCx3_ImageSensor_Wakeup();
                 }
             }
         }

@@ -305,8 +305,8 @@ CyU3PReturnStatus_t AR0140_ImageSensor_Set_Base()
 			return status;
 	CyU3PThreadSleep(2);
 
-	//Set YUV422 8 bits mode, Double Data Rate, 4 data lane
-	status = MAX9286_SensorWrite(0x12, 1, 0xF3);
+	//Set YUV422 8 bits mode, Double Data Rate, 2 data lane
+	status = MAX9286_SensorWrite(0x12, 1, 0x73);
 	//Manual Mode
 	status = MAX9286_SensorWrite(0x01, 1, 0x00);
 	status = MAX9286_SensorWrite(0x63, 1, 0x00);
@@ -508,15 +508,15 @@ CyU3PReturnStatus_t CyCx3_ImageSensor_Wakeup(void)
 		return status;
 
 	//Read the register written for MAX9286 and MAX96705
-	Dump_Register_9286();
-	Dump_Register_96705(1);
+	//Dump_Register_9286();
+	//Dump_Register_96705(1);
 	CyU3PThreadSleep(30);
 	return status;
 }
 
 CyU3PReturnStatus_t CyCx3_ImageSensor_Sleep(void)
 {
-	CyU3PDebugPrint(4,"\r\n enable ar0140 Camera csi-output");
+	CyU3PDebugPrint(4,"\r\n disable ar0140 Camera csi-output");
 	CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 
 	status = MAX9286_SensorWrite(0x15, 1, 0x13);

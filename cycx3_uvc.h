@@ -37,13 +37,13 @@
  * the video frame configurations */
 
 /* Uncomment following line to enable still image support */
-/* #define STILL_CAPTURE_ENABLE 1 */
-
+#define STILL_CAPTURE_ENABLE 1
+#define PRINT_FRAME_INFO
 /* Uncomment the following line to provide verbose debug logging. */
-/* #define CX3_DEBUG_ENABLED       1 */
+#define CX3_DEBUG_ENABLED       1
 
 /* Uncomment the following line to run the mipi error thread */
-/* #define CX3_ERROR_THREAD_ENABLE 1 */
+//#define CX3_ERROR_THREAD_ENABLE 1
 
 /* Uncomment the following line to run as UVC 1.0 device. 
  * Default is UVC 1.1 device.
@@ -90,6 +90,9 @@
 #define CX3_EP_BULK_VIDEO_PKT_SIZE              (0x400) /* UVC video streaming endpoint packet Size */
 
 /* UVC Buffer Parameters*/
+
+//#define CX3_UVC_DATA_BUF_SIZE                   (0x8FD0)
+
 #define CX3_UVC_DATA_BUF_SIZE                   (0x5FF0) /* DMA Buffer Data Size Used: 12272 Bytes*/
 #define CX3_UVC_PROD_HEADER                     (12)     /* UVC DMA Buffer Header Size */
 #define CX3_UVC_PROD_FOOTER                     (4)      /* UVC DMA Buffer Footer Size */
@@ -156,8 +159,6 @@
 #define CX3_DMA_RESET_EVENT                     (1 << 4)           /* DMA Reset event */
 #define CX3_USB_SUSP_EVENT_FLAG                 (1 << 5)           /* Event generated on a USB Suspend Request*/
 
-#define STILL_CAPTURE_ENABLE
-
 #ifdef STILL_CAPTURE_ENABLE
 #define CX3_UVC_MAX_STILL_PROBE_SETTING 		(11)	           /* Maximum number of bytes in Still Probe Control */
 #define CX3_UVC_HEADER_STI			            (uint8_t)(1 << 5)  /* Still Image Indication in the UVC Header*/
@@ -191,14 +192,12 @@ extern const uint8_t gl720PProbeCtrl[CX3_UVC_MAX_PROBE_SETTING];        /* 1280 
 /* MIPI Configuration parameters */
 /************************************/
 
-extern CyU3PMipicsiCfg_t AR0140_YUY2_720P;
+extern CyU3PMipicsiCfg_t AR0140_UYVY_720P;
 
 #include "cyu3externcend.h"
 
 
 #endif /* _INCLUDED_CYCX3_UVC_H_ */
-
-#define STILL_CAPTURE_ENABLE
 
 #define GPIF_BUS_WIDTH CY_U3P_MIPICSI_BUS_16
 

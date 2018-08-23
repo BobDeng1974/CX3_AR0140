@@ -269,8 +269,8 @@ const uint8_t CyCx3USBSSConfigDscr[] =
     0x01,                               /* Format desciptor index */
     0x01,                               /* Number of Frame Descriptors that follow this descriptor: 1 */
     
-    /* GUID, globally unique identifier used to identify streaming-encoding format: YUY2  */
-    0X59,0X55,0X59,0X32,
+    /* GUID, globally unique identifier used to identify streaming-encoding format: UYVY  */
+    0X55,0X59,0X56,0X59,
 0X00,0X00,0X10,0X00,
 0X80,0X00,0X00,0XAA,
 0X00,0X38,0X9B,0X71,
@@ -821,7 +821,7 @@ uint8_t const gl720PProbeCtrl[CX3_UVC_MAX_PROBE_SETTING] = {
     0x00, 0x00,                         /* Compression quality control */
     0x00, 0x00,                         /* Window size for average bit rate */
     0x00, 0x00,                         /* Internal video streaming i/f latency in ms */
-    0x00,0x20,0x1c,0x00,             /* Max video frame size in bytes = 1920 x 1080 x 2 */ 
+    0x00,0x20,0x1c,0x00,             /* Max video frame size in bytes = 1920 x 1080 x 2 */
 #ifdef CX3_UVC_1_0_SUPPORT 
     0x00, 0x90, 0x00, 0x00              /* No. of bytes device can rx in single payload: 36KB */
 #else
@@ -852,8 +852,8 @@ CyU3PMipicsiCfg_t cfgUvc5Mp15NoMclk =  {
 };
 
 /* Configuration parameters for 1080p @30FPS for the OV5640 sensor */
-CyU3PMipicsiCfg_t cfgUvc1080p30NoMclk =  { 
-    CY_U3P_CSI_DF_YUV422_8_2,     /* dataFormat   */ 
+CyU3PMipicsiCfg_t cfgUvc1080p30NoMclk =  {
+    CY_U3P_CSI_DF_YUV422_8_2,     /* dataFormat   */
     2,                          /* numDataLanes */
     1,                        /* pllPrd       */
     62,                         /* pllFbd       */
@@ -882,19 +882,20 @@ CyU3PMipicsiCfg_t cfgUvc720p60NoMclk =  {
 };
 
 /* Configuration parameters for VGA for the OV5640 sensor */
-CyU3PMipicsiCfg_t cfgUvcVgaNoMclk =  { 
-    CY_U3P_CSI_DF_YUV422_8_2,       /* dataFormat   */    
-    1,                            /* numDataLanes */    
-    0x1,                          /* pllPrd       */    
-    90,                           /* pllFbd       */    
-    CY_U3P_CSI_PLL_FRS_125_250M,   /* pllFrs      */            
-    CY_U3P_CSI_PLL_CLK_DIV_2,     /* csiRxClkDiv  */    
-    CY_U3P_CSI_PLL_CLK_DIV_8,     /* parClkDiv    */    
-    0x00,                         /* mclkCtl      */    
-    CY_U3P_CSI_PLL_CLK_DIV_8,     /* mClkRefDiv   */    
-    640,                          /* hResolution  */    
-    0x01                          /* fifoDelay    */    
+CyU3PMipicsiCfg_t cfgUvcVgaNoMclk =  {
+    CY_U3P_CSI_DF_YUV422_8_2,       /* dataFormat   */
+    1,                            /* numDataLanes */
+    0x1,                          /* pllPrd       */
+    90,                           /* pllFbd       */
+    CY_U3P_CSI_PLL_FRS_125_250M,   /* pllFrs      */
+    CY_U3P_CSI_PLL_CLK_DIV_2,     /* csiRxClkDiv  */
+    CY_U3P_CSI_PLL_CLK_DIV_8,     /* parClkDiv    */
+    0x00,                         /* mclkCtl      */
+    CY_U3P_CSI_PLL_CLK_DIV_8,     /* mClkRefDiv   */
+    640,                          /* hResolution  */
+    0x01                          /* fifoDelay    */
 };
+
 
 /* [ ] */
 
